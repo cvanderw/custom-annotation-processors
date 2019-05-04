@@ -116,7 +116,6 @@ public class ImmutableProcessor extends AbstractProcessor {
 
     private void verifyValidFieldType(Element e) {
         TypeMirror type = e.asType();
-        Types typeUtils = processingEnv.getTypeUtils();
         if (type.getKind().isPrimitive()) {
             return;
         }
@@ -125,6 +124,7 @@ public class ImmutableProcessor extends AbstractProcessor {
             return;
         }
 
+        Types typeUtils = processingEnv.getTypeUtils();
         Element typeElement = typeUtils.asElement(type);
         if (typeElement.getAnnotation(Immutable.class) != null) {
             // Class for this field is annotated as @Immutable so we can trust it's
