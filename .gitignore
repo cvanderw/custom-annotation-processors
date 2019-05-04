@@ -1,0 +1,5 @@
+# Compiled class files.
+*.class
+
+# Temporary swap files Vim creates while editing files.
+*.swp
