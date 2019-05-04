@@ -11,7 +11,7 @@ import java.lang.annotation.Target;
  * Java) then an error will be generated during compilation.
  */
 @Documented
-@Target(ElementType.TYPE)
+@Target({ElementType.TYPE, ElementType.FIELD})
 // TODO: Consider including a retention type of SOURCE (this matches what is done for the Override
 // annotation).
 public @interface Immutable {}

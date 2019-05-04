@@ -1,5 +1,7 @@
 package com.github.cvanderw.annotation.processor;
 
+import com.github.cvanderw.annotation.Immutable;
+import java.util.HashSet;
 import java.util.Set;
 import javax.annotation.processing.AbstractProcessor;
 import javax.annotation.processing.Messager;
@@ -9,8 +11,9 @@ import javax.annotation.processing.SupportedSourceVersion;
 import javax.lang.model.SourceVersion;
 import javax.lang.model.element.Element;
 import javax.lang.model.element.ElementKind;
-import javax.lang.model.element.TypeElement;
 import javax.lang.model.element.Modifier;
+import javax.lang.model.element.TypeElement;
+import javax.lang.model.util.Types;
 import javax.tools.Diagnostic;
 
 @SupportedAnnotationTypes("com.github.cvanderw.annotation.Immutable")
@@ -31,9 +34,6 @@ public class ImmutableProcessor extends AbstractProcessor {
      */
     private void verifyElementIsImmutable(Element element) {
         Messager messager = processingEnv.getMessager();
-        // TODO: Remove this informative note after the processor is fully implemented and tested.
-        messager.printMessage(Diagnostic.Kind.NOTE,
-                String.format("%s annotated as Immutable", element));
 
         // Verify a few things:
         // 1. Element should be a class (makes no sense to be an enum, annotation or interface).
@@ -49,16 +49,23 @@ public class ImmutableProcessor extends AbstractProcessor {
         //    relaxed then it should be verified that these mutable fields are never directly
         //    set (without defensive copies) and then defensive copies are made before returning
         //    any such field reference.
+        if (element.getKind() == ElementKind.FIELD) {
+            // Field use of the annotation is perfectly fine.
+            return;
+        }
+
+        // However, if the annotated element is not a field it has to be a class.
         if (element.getKind() != ElementKind.CLASS) {
             messager.printMessage(Diagnostic.Kind.ERROR,
                     String.format("%s is annotated as @Immutable but is not a class (type is: %s)",
                         element, element.getKind().toString().toLowerCase()));
         }
 
-        ensureNotExtendable(element);
+        verifyNotExtendable(element);
+        verifyFields(element);
     }
 
-    private void ensureNotExtendable(Element element) {
+    private void verifyNotExtendable(Element element) {
         // The class should be final to prevent subclassing.
         // TODO: Consider allowing non-final classes if and only if the class has no public
         // constructor.
@@ -66,6 +73,63 @@ public class ImmutableProcessor extends AbstractProcessor {
             processingEnv.getMessager().printMessage(Diagnostic.Kind.ERROR,
                     String.format(
                         "%s is annotated as @Immutable but is not marked as final", element));
+        }
+    }
+
+    private static final Set<String> knownImmutableTypes = new HashSet<>();
+
+    static {
+        // TODO: Expand with a few other known commonly used immutable types.
+        // Examples would include all boxed primitives.
+        knownImmutableTypes.add("java.lang.String");
+    }
+
+    private void verifyFields(Element element) {
+        Messager messager = processingEnv.getMessager();
+        Types types = processingEnv.getTypeUtils();
+        for (Element e : element.getEnclosedElements()) {
+            // Verify all fields are private and final.
+            if (e.getKind() == ElementKind.FIELD) {
+
+                // Ensure field is either primitive or immutable.
+                if (!e.asType().getKind().isPrimitive()) {
+                    if (knownImmutableTypes.contains(e.asType().toString())) {
+                        continue;
+                    }
+
+                    Element typeElement = types.asElement(e.asType());
+
+                    if (typeElement.getAnnotation(Immutable.class) != null) {
+                        // Class for this field is annotated as @Immutable so we can trust it's
+                        // a safe field to use.
+                        continue;
+                    }
+
+                    if (typeElement.getKind() == ElementKind.ENUM) {
+                        // Enums are, by definition, immutable so safe to use.
+                        continue;
+                    }
+
+                    if (e.getAnnotation(Immutable.class) == null) {
+                        messager.printMessage(Diagnostic.Kind.ERROR, String.format(
+                            "%s declared @Immutable contains field '%s' not annotated with @Immutable",
+                            element, e));
+                    }
+                }
+
+                Set<Modifier> modifiers = e.getModifiers();
+                if (!modifiers.contains(Modifier.FINAL)) {
+                    messager.printMessage(Diagnostic.Kind.ERROR, String.format(
+                            "%s declared @Immutable contains non-final field '%s'",
+                            element, e));
+                }
+
+                if (!modifiers.contains(Modifier.PRIVATE)) {
+                    messager.printMessage(Diagnostic.Kind.ERROR, String.format(
+                            "%s declared @Immutable contains non-private field '%s'",
+                            element, e));
+                }
+            }
         }
     }
 }
