@@ -2,6 +2,9 @@ package com.github.cvanderw.app;
 
 import com.github.cvanderw.annotation.Immutable;
 
+/**
+ * Class representing an address.
+ */
 @Immutable
 public final class Address {
     private final String streetName;

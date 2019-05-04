@@ -17,6 +17,26 @@ import javax.lang.model.element.TypeElement;
 import javax.lang.model.util.Types;
 import javax.tools.Diagnostic;
 
+/**
+ * Annotation processor for the {@link Immutable} annotation type.
+ *
+ * <p>Specifically verifies the following aspects of the annotated element:
+ * <ol>
+ *   <li>Element should be a class (makes no sense to be an enum, annotation or interface).
+ *   <li>Class shouldn't be extendable (being final is simplest, but could also have non-public
+ *   constructors).
+ *   <li>No way to change state. This is simply achieved by having all fields themselves be
+ *   references to immutable types. This can later be relaxed to allow for non-immutable fields
+ *   but with no mutator functions on class.
+ *   <li>Ensure all fields are private.
+ *   <li>Ensure all fields are final.
+ *   <li>Ensure exclusive access to any mutable components. Since initially this processor only
+ *   allows for immutable fields or primitives this isn't a concern. If this is relaxed in the
+ *   future then it should be verified that these mutable fields are never directly set (without
+ *   defensive copies) and then defensive copies are made before returning any such field
+ *   reference.
+ * </ol>
+ */
 @SupportedAnnotationTypes("com.github.cvanderw.annotation.Immutable")
 @SupportedSourceVersion(SourceVersion.RELEASE_8)
 public class ImmutableProcessor extends AbstractProcessor {
@@ -36,22 +56,9 @@ public class ImmutableProcessor extends AbstractProcessor {
     private void verifyElementIsImmutable(Element element) {
         Messager messager = processingEnv.getMessager();
 
-        // Verify a few things:
-        // 1. Element should be a class (makes no sense to be an enum, annotation or interface).
-        // 2. Class shouldn't be extendable (being final is simplest, but could also have non-public
-        //    constructors).
-        // 3. No way to change state. This is simply achieved by having all fields themselves be
-        //    references to immutable types. This can later be relaxed to allow for non-immutable
-        //    fields but with no mutator functions on class.
-        // 4. Ensure all fields are private.
-        // 5. Ensure all fields are final.
-        // 6. Ensure exclusive access to any mutable components. If initially this processor only
-        //    allows for immutable fields or primitives then this isn't a concern. If this is
-        //    relaxed then it should be verified that these mutable fields are never directly
-        //    set (without defensive copies) and then defensive copies are made before returning
-        //    any such field reference.
         if (element.getKind() == ElementKind.FIELD) {
-            // Field use of the annotation is perfectly fine.
+            // Field use of the annotation is perfectly fine and only used for later checking when
+            // examining fields on classes marked with this annotation.
             return;
         }
 
