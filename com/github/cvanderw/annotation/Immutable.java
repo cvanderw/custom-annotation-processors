@@ -2,6 +2,8 @@ package com.github.cvanderw.annotation;
 
 import java.lang.annotation.Documented;
 import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
@@ -12,6 +14,7 @@ import java.lang.annotation.Target;
  */
 @Documented
 @Target({ElementType.TYPE, ElementType.FIELD})
+@Retention(RetentionPolicy.SOURCE)
 // TODO: Consider including a retention type of SOURCE (this matches what is done for the Override
 // annotation).
 public @interface Immutable {}

@@ -9,6 +9,7 @@ import javax.annotation.processing.RoundEnvironment;
 import javax.annotation.processing.SupportedAnnotationTypes;
 import javax.annotation.processing.SupportedSourceVersion;
 import javax.lang.model.SourceVersion;
+import javax.lang.model.type.TypeMirror;
 import javax.lang.model.element.Element;
 import javax.lang.model.element.ElementKind;
 import javax.lang.model.element.Modifier;
@@ -88,35 +89,11 @@ public class ImmutableProcessor extends AbstractProcessor {
         Messager messager = processingEnv.getMessager();
         Types types = processingEnv.getTypeUtils();
         for (Element e : element.getEnclosedElements()) {
-            // Verify all fields are private and final.
             if (e.getKind() == ElementKind.FIELD) {
 
-                // Ensure field is either primitive or immutable.
-                if (!e.asType().getKind().isPrimitive()) {
-                    if (knownImmutableTypes.contains(e.asType().toString())) {
-                        continue;
-                    }
+                verifyValidFieldType(e);
 
-                    Element typeElement = types.asElement(e.asType());
-
-                    if (typeElement.getAnnotation(Immutable.class) != null) {
-                        // Class for this field is annotated as @Immutable so we can trust it's
-                        // a safe field to use.
-                        continue;
-                    }
-
-                    if (typeElement.getKind() == ElementKind.ENUM) {
-                        // Enums are, by definition, immutable so safe to use.
-                        continue;
-                    }
-
-                    if (e.getAnnotation(Immutable.class) == null) {
-                        messager.printMessage(Diagnostic.Kind.ERROR, String.format(
-                            "%s declared @Immutable contains field '%s' not annotated with @Immutable",
-                            element, e));
-                    }
-                }
-
+                // Verify all fields are private and final.
                 Set<Modifier> modifiers = e.getModifiers();
                 if (!modifiers.contains(Modifier.FINAL)) {
                     messager.printMessage(Diagnostic.Kind.ERROR, String.format(
@@ -131,5 +108,42 @@ public class ImmutableProcessor extends AbstractProcessor {
                 }
             }
         }
+    }
+
+    private void verifyValidFieldType(Element e) {
+        TypeMirror type = e.asType();
+        Types typeUtils = processingEnv.getTypeUtils();
+        if (type.getKind().isPrimitive()) {
+            return;
+        }
+
+        if (knownImmutableTypes.contains(type.toString())) {
+            return;
+        }
+
+        Element typeElement = typeUtils.asElement(type);
+        if (typeElement.getAnnotation(Immutable.class) != null) {
+            // Class for this field is annotated as @Immutable so we can trust it's
+            // a safe field to use.
+            return;
+        }
+
+        if (typeElement.getKind() == ElementKind.ENUM) {
+            return;
+        }
+
+        if (e.getAnnotation(Immutable.class) != null) {
+            return;
+        }
+
+        // Else the field isn't valid.
+        Messager messager = processingEnv.getMessager();
+        messager.printMessage(Diagnostic.Kind.ERROR, String.format(
+                "%s declared @Immutable contains field '%s' with invalid type '%s'. Fields should "
+                    + "be either of primitive or an immutable type. Valid immutable types are "
+                    + "known Java immutable library types (e.g., java.lang.String) or types "
+                    + "directly annotated with @Immutable. Finally, it's possible to annotate the "
+                    + "field declaration with @Immutable as a workaround.",
+                e.getEnclosingElement(), e, typeElement));
     }
 }
