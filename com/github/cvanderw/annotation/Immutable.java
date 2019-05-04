@@ -15,6 +15,4 @@ import java.lang.annotation.Target;
 @Documented
 @Target({ElementType.TYPE, ElementType.FIELD})
 @Retention(RetentionPolicy.SOURCE)
-// TODO: Consider including a retention type of SOURCE (this matches what is done for the Override
-// annotation).
 public @interface Immutable {}
