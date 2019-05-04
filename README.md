@@ -15,7 +15,7 @@ I may add additional annotation types (and processors) to this project in the fu
 1. First build the annotations and annotation processor code (all found under the "annotation" package):
 
    ```
-   javac -cp . -proc:none example/annotation/**/*.java
+   javac -cp . -proc:none com/github/cvanderw/annotation/**/*.java
    ```
    Note the use of `-proc:none` to indicate that annotation processing should be skipped (and only compilation should be performed).
 
