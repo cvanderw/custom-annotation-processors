@@ -32,9 +32,9 @@ import javax.tools.Diagnostic;
  *   <li>Ensure all fields are final.
  *   <li>Ensure exclusive access to any mutable components. Since initially this processor only
  *   allows for immutable fields or primitives this isn't a concern. If this is relaxed in the
- *   future then it should be verified that these mutable fields are never directly set (without
- *   defensive copies) and then defensive copies are made before returning any such field
- *   reference.
+ *   future to allow for non-final mutable types then it should be verified that these mutable
+ *   fields are never directly set (without first making defensive copies) and then defensive
+ *   copies are made before returning any such field reference.
  * </ol>
  */
 @SupportedAnnotationTypes("com.github.cvanderw.annotation.Immutable")
@@ -54,8 +54,6 @@ public class ImmutableProcessor extends AbstractProcessor {
      * Verifies that the provided {@code element} is in fact immutable.
      */
     private void verifyElementIsImmutable(Element element) {
-        Messager messager = processingEnv.getMessager();
-
         if (element.getKind() == ElementKind.FIELD) {
             // Field use of the annotation is perfectly fine and only used for later checking when
             // examining fields on classes marked with this annotation.
@@ -64,7 +62,7 @@ public class ImmutableProcessor extends AbstractProcessor {
 
         // However, if the annotated element is not a field it has to be a class.
         if (element.getKind() != ElementKind.CLASS) {
-            messager.printMessage(Diagnostic.Kind.ERROR,
+            processingEnv.getMessager().printMessage(Diagnostic.Kind.ERROR,
                     String.format("%s is annotated as @Immutable but is not a class (type is: %s)",
                         element, element.getKind().toString().toLowerCase()));
         }
@@ -94,7 +92,6 @@ public class ImmutableProcessor extends AbstractProcessor {
 
     private void verifyFields(Element element) {
         Messager messager = processingEnv.getMessager();
-        Types types = processingEnv.getTypeUtils();
         for (Element e : element.getEnclosedElements()) {
             if (e.getKind() == ElementKind.FIELD) {
 
@@ -144,8 +141,7 @@ public class ImmutableProcessor extends AbstractProcessor {
         }
 
         // Else the field isn't valid.
-        Messager messager = processingEnv.getMessager();
-        messager.printMessage(Diagnostic.Kind.ERROR, String.format(
+        processingEnv.getMessager().printMessage(Diagnostic.Kind.ERROR, String.format(
                 "%s declared @Immutable contains field '%s' with invalid type '%s'. Fields should "
                     + "be either of primitive or an immutable type. Valid immutable types are "
                     + "known Java immutable library types (e.g., java.lang.String) or types "
