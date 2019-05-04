@@ -9,17 +9,28 @@ import com.github.cvanderw.annotation.Immutable;
  * are needed then a separate {@code Person} instance should be created with those new values.
  */
 @Immutable
-public class Person {
-    private final String name;
-    private final int birthYear;
-
-    private Person(String name, int birthYear) {
-        this.name = name;
-        this.birthYear = birthYear;
+public final class Person {
+    public enum EmploymentType {
+        UNEMPLOYED,
+        PART_TIME,
+        FULL_TIME;
     }
 
-    public static Person of(String name, int birthYear) {
-        return new Person(name, birthYear);
+    private final String name;
+    private final int birthYear;
+    private final Address address;
+    private final EmploymentType employmentType;
+
+    private Person(String name, int birthYear, Address address, EmploymentType employmentType) {
+        this.name = name;
+        this.birthYear = birthYear;
+        this.address = address;
+        this.employmentType = employmentType;
+    }
+
+    public static Person of(String name, int birthYear, Address address,
+            EmploymentType employmentType) {
+        return new Person(name, birthYear, address, employmentType);
     }
 
     public String getName() {
