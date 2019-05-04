@@ -36,4 +36,5 @@ I may add additional annotation types (and processors) to this project in the fu
 
 * Make building simpler. For example, integrate with Gradle, instead of relying on primitive `javac` commands.
 * Make the @Immutable annotation processor more robust: handle more checks for immutability.
+* Add tests.
 * Add additional annotation types and processors.
